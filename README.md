@@ -1,10 +1,11 @@
 # nagios_plugins
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
 Miscellaneous collection of custom Nagios plugins
 
 ## The Plugins
 
 ### check_temp
-Check and return temperature status. Currently only support CPU temp check. Requires the lm_sensors package.
+Check and return temperature status. Currently only supports CPU temp check. Requires the lm_sensors package.
 
 #### Option -c
 Output

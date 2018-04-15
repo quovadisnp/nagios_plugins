@@ -176,10 +176,9 @@ stdout, stderr = process.communicate()
 if stderr:
 	sys.exit(3)
 
-print (stdout)
 #Replace any spaces with underscores
 stdout = str(stdout).replace(' ', '_')
-print (stdout)
+
 #Setup array of lines
 lines = stdout.splitlines()
 
@@ -216,7 +215,7 @@ while True:
 #Process values for CPU to determine print/exist
 if OPTION == "CPU":
 	check_cpu()
-
+print ('test')
 for result in RETURN:
 	print (result)
 
