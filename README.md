@@ -1,5 +1,5 @@
 # nagios_plugins
-Miscellaneous collection of custom Nagios plugins
+Miscellaneous collection of custom Nagios plugins. Tested on python 2.7.14, plan to add python 3.6.4 soon.
 
 ## The Plugins
 
