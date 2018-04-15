@@ -19,7 +19,7 @@ Returns an exit code for Nagios of OK, Warning, or Critical based on the what lm
 
 ## Usage
 
-### On each client place in your Nagios plugins folder (your folder could very well be different than mine)
+### On each client place script in your Nagios plugins folder (your folder could very well be different than mine)
 ```
 /usr/local/nagios/libexec/
 ```
@@ -28,5 +28,23 @@ Returns an exit code for Nagios of OK, Warning, or Critical based on the what lm
 ```
 vi /etc/nagios/nrpe.cfg
 ```
-####check_temp (cpu) option
+#### check_temp (cpu) option
+```
 command[check_cpu]=/usr/local/nagios/libexec/check_temp -c
+```
+
+### Add service check to server for each host to reference the new client command
+```
+vi /usr/local/nagios/etc/services.cfg
+```
+
+#### check_temp (cpu) option
+```
+define service {
+        use                     generic-service
+        host_name               myhost
+        service_description     CPU Temperature
+        check_command           check_cpu
+        servicegroups           health
+}
+```
