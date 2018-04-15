@@ -1,5 +1,19 @@
 #!/usr/bin/python
-
+###############################################################################
+#
+# check_temp
+#
+# Nagios plugin for checking temperature
+#
+# Requires 'jhead' to use
+#
+# 1.0   04/10/2018 QUO  Initial
+#
+#
+#
+# GitHub: https://github.com/quovadisnp
+###############################################################################
+from __future__ import print_function
 from subprocess import Popen, PIPE
 import re, sys, socket, os
 from optparse import OptionParser
@@ -56,20 +70,20 @@ CPU_PARAM['crit'] = "_crit:"
 CPUFAN_PARAM = {}
 CPUFAN_PARAM['input'] = "_input"
 
-CPU_READINGS = {} #Final CPU Readings 
+CPU_READINGS = {} #Final CPU Readings
 CPUFAN_READINGS = {} #Final CPUFAN Readings
 
 def setup_sensors():
-    global COMMAND
-    if not os.path.exists(COMMAND[0]):
-        print "ERROR:", COMMAND[0], "does not exist"
-        sys.exit(3)
-    #if not os.access(COMMAND[0]):
-    #    print "ERROR:", COMMAND[0], "missing proper permissions"
-    #    sys.exit(3)
+	global COMMAND
+	if not os.path.exists(COMMAND[0]):
+		print ("ERROR:", COMMAND[0], "does not exist")
+		sys.exit(3)
+	#if not os.access(COMMAND[0]):
+	#	print "ERROR:", COMMAND[0], "missing proper permissions"
+	#	sys.exit(3)
 
-    for opts in COMMAND_OPTS:
-        COMMAND.append(opts)
+	for opts in COMMAND_OPTS:
+		COMMAND.append(opts)
 
 #Process blocks of type CPU/Core Temp
 def process_cpu(name, block):
@@ -89,7 +103,7 @@ def process_cpufan(name, block):
 	for line in block:
 		for PARAM in CPUFAN_PARAM:
 			if re.search(PARAM, line):
-				CPUFAN_READING[line.split("_input")[0].replace('_', '').strip()] = line.split(":")[1].replace('_', '').strip()	
+				CPUFAN_READING[line.split("_input")[0].replace('_', '').strip()] = line.split(":")[1].replace('_', '').strip()
 	CPUFAN_READINGS[name] = CPUFAN_READING
 
 def process_block(block):
@@ -97,7 +111,7 @@ def process_block(block):
 
 def check_for_header(line):
 	for component in TERMS:
-		for term in TERMS[component]:	
+		for term in TERMS[component]:
 			if re.search(term, line) != None:
 				return component
 	return None
@@ -117,10 +131,10 @@ def check_minexit(min):
 def check_cpu():
 	global MINEXIT
 	global RETURN
-        tempReturn = []
-        average = []
+	tempReturn = []
+	average = []
 	for cpu in CPU_READINGS:
-                average.append(CPU_READINGS[cpu]['input'])
+		average.append(CPU_READINGS[cpu]['input'])
 		if float(CPU_READINGS[cpu]['input']) >= float(CPU_READINGS[cpu]['crit']):
 			tempReturn.append(cpu + " Critical @ " +  CPU_READINGS[cpu]['input'] + "C")
 			MINEXIT = check_minexit(2)
@@ -129,27 +143,27 @@ def check_cpu():
 			MINEXIT = check_minexit(1)
 		else:
 			tempReturn.append(cpu + " OK @ " +  CPU_READINGS[cpu]['input'] + "C")
-        totalTemp = 0
-        for temp in average:
-            totalTemp = float(totalTemp) + float(temp)
-        RETURN.append("CPU Avg @ " + str(totalTemp/len(average)) + "C")
+		totalTemp = 0
+		for temp in average:
+			totalTemp = float(totalTemp) + float(temp)
+		RETURN.append("CPU Avg @ " + str(totalTemp/len(average)) + "C")
 
-        for ret in tempReturn:
-            RETURN.append(ret)
-            
+		for ret in tempReturn:
+			RETURN.append(ret)
+
 
 parser = OptionParser()
 parser.add_option("-c", "--cpu", action="store_true")
 (opts, args) = parser.parse_args()
 
 if not opts.cpu:
-    print "help menu"
-    exit()
+	print ("\n-c | --cpu Check and return status of CPU temperature\n")
+	exit(1)
 
 if opts.cpu:
-    OPTION="CPU"
+	OPTION="CPU"
 
-#Setup Sensors commmand/options		
+#Setup Sensors commmand/options
 setup_sensors()
 
 #Setup the process
@@ -162,9 +176,10 @@ stdout, stderr = process.communicate()
 if stderr:
 	sys.exit(3)
 
+print (stdout)
 #Replace any spaces with underscores
-stdout = stdout.replace(' ', '_')
-
+stdout = str(stdout).replace(' ', '_')
+print (stdout)
 #Setup array of lines
 lines = stdout.splitlines()
 
@@ -185,29 +200,24 @@ while True:
 	if headerCheck != None:
 		headerCheck = headerCheck
 		name = line.split(':')[0].replace('_','').strip()
-		#print "Header: ", headerCheck
 		line = advance(linesa)
 		headerBlock = []
 		while (re.search("^__", str(line)) != None):
 			headerBlock.append(line)
-			#print "--", line
 			line = advance(linesa)
-		if OPTION == "CPU" and headerCheck == 'CPU':			
+		if OPTION == "CPU" and headerCheck == 'CPU':
 			process_cpu(name, headerBlock)
 		elif OPTION == "CPUFAN" and headerCheck == 'CPUFAN':
-			process_cpufan(name, headerBlock)		
-		#print "_------_"
+			process_cpufan(name, headerBlock)
 	else:
 		line = advance(linesa)
 
 
 #Process values for CPU to determine print/exist
 if OPTION == "CPU":
-    check_cpu()
+	check_cpu()
 
-#print socket.gethostname()
 for result in RETURN:
-	print result
+	print (result)
 
 sys.exit(MINEXIT)
-
