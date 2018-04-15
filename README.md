@@ -19,7 +19,7 @@ Returns an exit code for Nagios of OK, Warning, or Critical based on the what lm
 
 ## Usage
 
-### On each client place script in your Nagios plugins folder (your folder could very well be different than mine)
+### On each client place script in your Nagios plugins folder (your folder could very well be different than mine). Run the plugin directly to make sure it works without any issues or missing dependencies (e.g. ./check_temp -c)
 ```
 /usr/local/nagios/libexec/
 ```
