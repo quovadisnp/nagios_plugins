@@ -1,0 +1,213 @@
+#!/usr/bin/python
+
+from subprocess import Popen, PIPE
+import re, sys, socket, os
+from optparse import OptionParser
+################################################################
+#
+# Globals
+#
+# TERMS -> Array of valid sensor headers
+# CPU -> Array of valid, regex, CPU headers
+# CPUFAN -> Array of valid, regex, CPUFAN headers
+# RETURN -> Array of return lines to be printed
+# COMMAND -> Sensor command path
+# COMMAND_OPTS -> Array of options for sensor command
+# CPU_PARAM -> Array of valid/known CPU temp parameters
+# CPUFAN_PARAM -> Array of valid/known CPUFAN temp parameters
+# CPU_READINGS -> Array of parsed readings for all CPU cores
+# CPUFAN_READINGS -> Array of parsed readings for all CPUFANs
+#
+################################################################
+
+TERMS = {}
+
+#Setup array of what CPU Temp lines look like
+CPU = []
+CPU.append("^Core")
+
+#Setup array of what CPUFAN Temp lines look like
+CPUFAN = []
+CPUFAN.append("^cpu_fan")
+
+TERMS['CPU'] = CPU
+TERMS['CPUFAN'] = CPUFAN
+
+
+
+MINEXIT = 0
+
+#Return
+RETURN = []
+
+#Declare command/options
+COMMAND=["/bin/sensors"]
+COMMAND_OPTS = ["-u"]
+
+#Setup array of CPU Temp Line types
+CPU_PARAM = {}
+CPU_PARAM['input'] = "_input:"
+CPU_PARAM['max'] = "_max:"
+CPU_PARAM['crit_alarm'] = "_crit_alarm:"
+CPU_PARAM['crit'] = "_crit:"
+
+
+#Setup array of CPUFAN Temp Line Types
+CPUFAN_PARAM = {}
+CPUFAN_PARAM['input'] = "_input"
+
+CPU_READINGS = {} #Final CPU Readings 
+CPUFAN_READINGS = {} #Final CPUFAN Readings
+
+def setup_sensors():
+    global COMMAND
+    if not os.path.exists(COMMAND[0]):
+        print "ERROR:", COMMAND[0], "does not exist"
+        sys.exit(3)
+    #if not os.access(COMMAND[0]):
+    #    print "ERROR:", COMMAND[0], "missing proper permissions"
+    #    sys.exit(3)
+
+    for opts in COMMAND_OPTS:
+        COMMAND.append(opts)
+
+#Process blocks of type CPU/Core Temp
+def process_cpu(name, block):
+	global CPU_READINGS
+	CPU_READING = {}
+	for line in block:
+		for PARAM in CPU_PARAM:
+			if re.search(PARAM, line):
+				CPU_READING[PARAM] = line.split(":")[1].replace('_', '').strip()
+				break
+	CPU_READINGS[name] = CPU_READING
+
+#Process blocks of type CPU FAN Temp
+def process_cpufan(name, block):
+	global CPUFAN_READINGS
+	CPUFAN_READING = {}
+	for line in block:
+		for PARAM in CPUFAN_PARAM:
+			if re.search(PARAM, line):
+				CPUFAN_READING[line.split("_input")[0].replace('_', '').strip()] = line.split(":")[1].replace('_', '').strip()	
+	CPUFAN_READINGS[name] = CPUFAN_READING
+
+def process_block(block):
+	pass
+
+def check_for_header(line):
+	for component in TERMS:
+		for term in TERMS[component]:	
+			if re.search(term, line) != None:
+				return component
+	return None
+
+def advance(iteritem):
+	try:
+		line = next(iteritem)
+		return line
+	except:
+		return None
+
+def check_minexit(min):
+	if min > MINEXIT:
+		return min
+	return MINEXIT
+
+def check_cpu():
+	global MINEXIT
+	global RETURN
+        tempReturn = []
+        average = []
+	for cpu in CPU_READINGS:
+                average.append(CPU_READINGS[cpu]['input'])
+		if float(CPU_READINGS[cpu]['input']) >= float(CPU_READINGS[cpu]['crit']):
+			tempReturn.append(cpu + " Critical @ " +  CPU_READINGS[cpu]['input'] + "C")
+			MINEXIT = check_minexit(2)
+		elif CPU_READINGS[cpu]['input'] >= CPU_READINGS[cpu]['max']:
+			tempReturn.append(cpu + " Warning @ " +  CPU_READINGS[cpu]['input'] + "C")
+			MINEXIT = check_minexit(1)
+		else:
+			tempReturn.append(cpu + " OK @ " +  CPU_READINGS[cpu]['input'] + "C")
+        totalTemp = 0
+        for temp in average:
+            totalTemp = float(totalTemp) + float(temp)
+        RETURN.append("CPU Avg @ " + str(totalTemp/len(average)) + "C")
+
+        for ret in tempReturn:
+            RETURN.append(ret)
+            
+
+parser = OptionParser()
+parser.add_option("-c", "--cpu", action="store_true")
+(opts, args) = parser.parse_args()
+
+if not opts.cpu:
+    print "help menu"
+    exit()
+
+if opts.cpu:
+    OPTION="CPU"
+
+#Setup Sensors commmand/options		
+setup_sensors()
+
+#Setup the process
+process = Popen(COMMAND, stdout=PIPE, stderr=PIPE)
+
+#Run the process, get the output
+stdout, stderr = process.communicate()
+
+#Check for errors, exit 3 if any exist
+if stderr:
+	sys.exit(3)
+
+#Replace any spaces with underscores
+stdout = stdout.replace(' ', '_')
+
+#Setup array of lines
+lines = stdout.splitlines()
+
+#Setup iteration of lines
+linesa = iter(lines)
+
+#Go to first line
+line = advance(linesa)
+
+#Start 'infinite' loop on lines, loop advances within
+while True:
+	if line == "":
+		line = advance(linesa)
+		continue
+	if line == None:
+		break
+	headerCheck = check_for_header(line)
+	if headerCheck != None:
+		headerCheck = headerCheck
+		name = line.split(':')[0].replace('_','').strip()
+		#print "Header: ", headerCheck
+		line = advance(linesa)
+		headerBlock = []
+		while (re.search("^__", str(line)) != None):
+			headerBlock.append(line)
+			#print "--", line
+			line = advance(linesa)
+		if OPTION == "CPU" and headerCheck == 'CPU':			
+			process_cpu(name, headerBlock)
+		elif OPTION == "CPUFAN" and headerCheck == 'CPUFAN':
+			process_cpufan(name, headerBlock)		
+		#print "_------_"
+	else:
+		line = advance(linesa)
+
+
+#Process values for CPU to determine print/exist
+if OPTION == "CPU":
+    check_cpu()
+
+#print socket.gethostname()
+for result in RETURN:
+	print result
+
+sys.exit(MINEXIT)
+
