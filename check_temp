@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python -t
 ###############################################################################
 #
 # check_temp
@@ -8,6 +8,7 @@
 # Requires 'jhead' to use
 #
 # 1.0   04/10/2018 QUO  Initial
+# 1.1   04/15/2018 QUO  Added support for Python 3
 #
 #
 #
@@ -17,6 +18,7 @@ from __future__ import print_function
 from subprocess import Popen, PIPE
 import re, sys, socket, os
 from optparse import OptionParser
+import sys
 ################################################################
 #
 # Globals
@@ -39,6 +41,8 @@ TERMS = {}
 #Setup array of what CPU Temp lines look like
 CPU = []
 CPU.append("^Core")
+
+PYVER = None
 
 #Setup array of what CPUFAN Temp lines look like
 CPUFAN = []
@@ -143,18 +147,21 @@ def check_cpu():
 			MINEXIT = check_minexit(1)
 		else:
 			tempReturn.append(cpu + " OK @ " +  CPU_READINGS[cpu]['input'] + "C")
-		totalTemp = 0
-		for temp in average:
-			totalTemp = float(totalTemp) + float(temp)
-		RETURN.append("CPU Avg @ " + str(totalTemp/len(average)) + "C")
+	totalTemp = 0
+	for temp in average:
+		totalTemp = float(totalTemp) + float(temp)
+	RETURN.append("CPU Avg @ " + str(totalTemp/len(average)) + "C")
 
-		for ret in tempReturn:
-			RETURN.append(ret)
+	for ret in tempReturn:
+		RETURN.append(ret)
+
 
 
 parser = OptionParser()
 parser.add_option("-c", "--cpu", action="store_true")
 (opts, args) = parser.parse_args()
+
+PYVER = float(sys.version_info[0])
 
 if not opts.cpu:
 	print ("\n-c | --cpu Check and return status of CPU temperature\n")
@@ -177,7 +184,10 @@ if stderr:
 	sys.exit(3)
 
 #Replace any spaces with underscores
-stdout = str(stdout).replace(' ', '_')
+if PYVER < 3:
+	stdout = str(stdout).replace(' ', '_')
+else:
+	stdout = str(stdout, 'ascii', 'ignore').replace(' ', '_')
 
 #Setup array of lines
 lines = stdout.splitlines()
@@ -215,7 +225,7 @@ while True:
 #Process values for CPU to determine print/exist
 if OPTION == "CPU":
 	check_cpu()
-print ('test')
+
 for result in RETURN:
 	print (result)
 
