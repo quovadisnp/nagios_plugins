@@ -1,6 +1,6 @@
 # nagios_plugins
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)
-Miscellaneous collection of custom Nagios plugins
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://GitHub.com/Naereen/StrapDown.js/graphs/commit-activity)  
+Miscellaneous collection of custom Nagios plugins. Python 2.7.14 - 3.6.4.
 
 ## The Plugins
 
